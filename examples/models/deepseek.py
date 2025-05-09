@@ -57,14 +57,14 @@ async def run_search(theme):
 	agent = Agent(
 		task=(
             #f'打开aippt网站(https://www.aippt.cn/generate?type=ai), 并登录完成.'
-            f'在aippt网站(https://www.aippt.cn/generate?type=ai), 生成一个PPT. 主题是"{theme}", ppt模版风格要贴合主题.'
-            '操作提示："联网搜索"右边一个纸飞机状的按钮后就会开始生成大纲.'
-            'aippt网站生成完成ppt后，会有一个"下载"按钮, 选pdf格式下载到本地'
+            f'在AIPPT网站(https://www.aippt.cn/generate?type=ai), 生成一个PPT. 主题是"{theme}", ppt模版风格要贴合主题.'
+            '操作提示：点击"联网搜索"按钮右边一个纸飞机状的按钮后就会开始生成大纲.'
+            'AIPPT网站生成完成ppt后，点击"下载"按钮下载ppt到本地'
 		),
 		llm=llm,
 
 		# 计划器
-		# planner_llm=llm_r, 
+		planner_llm=llm_r, 
 
 		browser=browser,
 

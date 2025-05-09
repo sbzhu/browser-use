@@ -23,6 +23,7 @@ agent = Agent(
 
 
 async def main():
+	print(os.getenv('OPENAI_API_KEY'))
 	await agent.run(max_steps=10)
 	input('Press Enter to continue...')
 

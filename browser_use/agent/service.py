@@ -502,6 +502,8 @@ class Agent(Generic[Context]):
 			input_messages = self._message_manager.get_messages()
 			tokens = self._message_manager.state.history.current_tokens
 
+			print('abeldebug step, input_messages', input_messages)
+
 			try:
 				model_output = await self.get_next_action(input_messages)
 				if (
@@ -705,10 +707,14 @@ class Agent(Generic[Context]):
 		"""Get next action from LLM based on current state"""
 		input_messages = self._convert_input_messages(input_messages)
 
+		print('abeldebug get_next_action, tool_calling_method', self.tool_calling_method)
+
 		if self.tool_calling_method == 'raw':
 			logger.debug(f'Using {self.tool_calling_method} for {self.chat_model_library}')
 			try:
+				print('abeldebug get_next_action, input_messages', input_messages)
 				output = self.llm.invoke(input_messages)
+				print('abeldebug get_next_action, output', output)
 				response = {'raw': output, 'parsed': None}
 			except Exception as e:
 				logger.error(f'Failed to invoke model: {str(e)}')
@@ -724,7 +730,9 @@ class Agent(Generic[Context]):
 				raise ValueError('Could not parse response.')
 
 		elif self.tool_calling_method is None:
+			print('abeldebug get_next_action, AgentOutput', self.AgentOutput)
 			structured_llm = self.llm.with_structured_output(self.AgentOutput, include_raw=True)
+			print('abeldebug get_next_action, structured_llm', structured_llm)
 			try:
 				response: dict[str, Any] = await structured_llm.ainvoke(input_messages)  # type: ignore
 				parsed: AgentOutput | None = response['parsed']
@@ -735,8 +743,11 @@ class Agent(Generic[Context]):
 
 		else:
 			logger.debug(f'Using {self.tool_calling_method} for {self.chat_model_library}')
+			print('abeldebug get_next_action, AgentOutput', self.AgentOutput)
 			structured_llm = self.llm.with_structured_output(self.AgentOutput, include_raw=True, method=self.tool_calling_method)
+			print('abeldebug get_next_action, structured_llm', structured_llm)
 			response: dict[str, Any] = await structured_llm.ainvoke(input_messages)  # type: ignore
+			print('abeldebug get_next_action, response', response)
 
 		# Handle tool call responses
 		if response.get('parsing_error') and 'raw' in response:
@@ -1294,7 +1305,7 @@ class Agent(Generic[Context]):
 		test_answer = 'paris'
 		try:
 			# dont convert this to async! it *should* block any subsequent llm calls from running
-			response = self.llm.invoke([HumanMessage(content=test_prompt)])
+			response = self.llm.invoke([SystemMessage("you are ai assistant named by abeldebug"), HumanMessage(content=test_prompt)])
 			response_text = str(response.content).lower()
 
 			if test_answer in response_text:

@@ -40,13 +40,13 @@ async def run_search():
 		),
 		llm=ChatDeepSeek(
 			base_url='https://api.deepseek.com/v1',
-			model='deepseek-chat',
+			model='DeepSeek-VL2',
 			api_key=SecretStr(api_key),
 		),
 		browser=browser,
 
         # 视觉能力，deepseek不支持
-		use_vision=False, 
+		use_vision=True, 
 	)
 
 	await agent.run()

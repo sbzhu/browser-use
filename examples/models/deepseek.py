@@ -38,7 +38,10 @@ async def run_search(theme):
             keep_alive=True,
 
 			# 指定下载路径
-			new_context_config=BrowserContextConfig(save_downloads_path=os.path.join(os.path.expanduser('~'), 'Downloads')),
+			new_context_config=BrowserContextConfig(
+				save_downloads_path=os.path.join(os.path.expanduser('~'), 'Downloads'),
+				maximum_wait_page_load_time=2.0
+			),
 
 			# 保存对话	
 			save_conversation_path="logs/conversation",  # Save chat logs
@@ -56,7 +59,7 @@ async def run_search(theme):
 	)
 	agent = Agent(
 		task=(
-            #f'打开aippt网站(https://www.aippt.cn/generate?type=ai), 并登录完成.'
+            #f'打开aippt网站(https://www.aippt.cn/generate?type=ai), 输入主题”我试一下, 关闭浏览器“.'
             f'在AIPPT网站(https://www.aippt.cn/generate?type=ai), 生成一个PPT. 主题是"{theme}", ppt模版风格要贴合主题.'
             '操作提示：点击"联网搜索"按钮右边一个纸飞机状的按钮后就会开始生成大纲.'
             'AIPPT网站生成完成ppt后，点击"下载"按钮下载ppt到本地'
@@ -65,6 +68,7 @@ async def run_search(theme):
 
 		# 计划器
 		planner_llm=llm_r, 
+		planner_interval=3, # Plan every 3 steps
 
 		browser=browser,
 
@@ -74,7 +78,10 @@ async def run_search(theme):
 
 	history = await agent.run()
 
-	await browser.close()
+	print('history actions', history.model_actions())
+	history.save_as_playwright_script('history_playwright.py')
+
+	# await browser.close()
 
 if __name__ == '__main__':
 	# 创建命令行参数解析器

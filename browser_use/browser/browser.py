@@ -194,37 +194,58 @@ class Browser:
 			'browser_binary_path only supports chromium browsers (make sure browser_class=chromium)'
 		)
 
-		try:
-			# Check if browser is already running
-			async with httpx.AsyncClient() as client:
-				response = await client.get(
-					f'http://localhost:{self.config.chrome_remote_debugging_port}/json/version', timeout=2
+		# Prepare launch arguments, excluding remote debugging port by default
+		chrome_launch_args_set = {
+			*CHROME_ARGS,
+			*(CHROME_DOCKER_ARGS if IN_DOCKER else []),
+			*(CHROME_HEADLESS_ARGS if self.config.headless else []),
+			*(CHROME_DISABLE_SECURITY_ARGS if self.config.disable_security else []),
+			*(CHROME_DETERMINISTIC_RENDERING_ARGS if self.config.deterministic_rendering else []),
+			*self.config.extra_browser_args,
+		}
+
+		# Check if remote debugging port is explicitly set in extra_browser_args
+		remote_debugging_port_in_extra_args = any(
+			arg.startswith('--remote-debugging-port=') for arg in self.config.extra_browser_args
+		)
+
+		# If a debugging port is configured and not explicitly set in extra_args, try to connect to an existing instance
+		if self.config.chrome_remote_debugging_port and not remote_debugging_port_in_extra_args:
+			try:
+				async with httpx.AsyncClient() as client:
+					response = await client.get(
+						f'http://localhost:{self.config.chrome_remote_debugging_port}/json/version', timeout=2
+					)
+					if response.status_code == 200:
+						logger.info(
+							f'🔌  Reusing existing browser found running on http://localhost:{self.config.chrome_remote_debugging_port}'
+						)
+						browser_class = getattr(playwright, self.config.browser_class)
+						browser = await browser_class.connect_over_cdp(
+							endpoint_url=f'http://localhost:{self.config.chrome_remote_debugging_port}',
+							timeout=20000,  # 20 second timeout for connection
+						)
+						return browser
+			except httpx.RequestError:
+				logger.debug(
+					f'🌎  No existing Chrome instance found on port {self.config.chrome_remote_debugging_port}, or connection failed. Will attempt to launch a new one without forcing this debug port.'
 				)
-				if response.status_code == 200:
-					logger.info(
-						f'🔌  Reusing existing browser found running on http://localhost:{self.config.chrome_remote_debugging_port}'
-					)
-					browser_class = getattr(playwright, self.config.browser_class)
-					browser = await browser_class.connect_over_cdp(
-						endpoint_url=f'http://localhost:{self.config.chrome_remote_debugging_port}',
-						timeout=20000,  # 20 second timeout for connection
-					)
-					return browser
-		except httpx.RequestError:
-			logger.debug('🌎  No existing Chrome instance found, starting a new one')
+
+		# If remote debugging port is explicitly in extra_browser_args, it's already in chrome_launch_args_set.
+		# Otherwise, we launch without a forced debugging port for a new instance.
+		if not remote_debugging_port_in_extra_args:
+			logger.info(
+				'💡 Launching new browser instance in normal mode. If you need to use a specific debugging port, add it to `extra_browser_args`.'
+			)
+		else:
+			logger.info(
+				f'🚀 Launching new browser instance with specified remote debugging port from extra_browser_args.'
+			)
+
+		chrome_launch_args = list(chrome_launch_args_set)
 
 		# Start a new Chrome instance
-		chrome_launch_args = [
-			*{  # remove duplicates (usually preserves the order, but not guaranteed)
-				f'--remote-debugging-port={self.config.chrome_remote_debugging_port}',
-				*CHROME_ARGS,
-				*(CHROME_DOCKER_ARGS if IN_DOCKER else []),
-				*(CHROME_HEADLESS_ARGS if self.config.headless else []),
-				*(CHROME_DISABLE_SECURITY_ARGS if self.config.disable_security else []),
-				*(CHROME_DETERMINISTIC_RENDERING_ARGS if self.config.deterministic_rendering else []),
-				*self.config.extra_browser_args,
-			},
-		]
+		logger.info(f"🚀 Launching new browser instance with args: {' '.join(chrome_launch_args)}")
 		chrome_sub_process = await asyncio.create_subprocess_exec(
 			self.config.browser_binary_path,
 			*chrome_launch_args,
@@ -234,31 +255,51 @@ class Browser:
 		)
 		self._chrome_subprocess = psutil.Process(chrome_sub_process.pid)
 
-		# Attempt to connect again after starting a new instance
-		for _ in range(10):
-			try:
-				async with httpx.AsyncClient() as client:
-					response = await client.get(
-						f'http://localhost:{self.config.chrome_remote_debugging_port}/json/version', timeout=2
-					)
-					if response.status_code == 200:
-						break
-			except httpx.RequestError:
-				pass
-			await asyncio.sleep(1)
+		# If a debugging port was specified in extra_args, attempt to connect via CDP
+		if remote_debugging_port_in_extra_args:
+			# Extract the port from the argument
+			port_arg = next(arg for arg in self.config.extra_browser_args if arg.startswith('--remote-debugging-port='))
+			debugging_port_to_connect = int(port_arg.split('=')[1])
 
-		# Attempt to connect again after starting a new instance
-		try:
-			browser_class = getattr(playwright, self.config.browser_class)
-			browser = await browser_class.connect_over_cdp(
-				endpoint_url=f'http://localhost:{self.config.chrome_remote_debugging_port}',
-				timeout=20000,  # 20 second timeout for connection
+			# Attempt to connect again after starting a new instance
+			for _ in range(10):
+				try:
+					async with httpx.AsyncClient() as client:
+						response = await client.get(
+							f'http://localhost:{debugging_port_to_connect}/json/version', timeout=2
+						)
+						if response.status_code == 200:
+							break
+				except httpx.RequestError:
+					pass
+				await asyncio.sleep(1)
+
+			try:
+				browser_class = getattr(playwright, self.config.browser_class)
+				browser = await browser_class.connect_over_cdp(
+					endpoint_url=f'http://localhost:{debugging_port_to_connect}',
+					timeout=20000,  # 20 second timeout for connection
+				)
+				return browser
+			except Exception as e:
+				logger.error(f'❌  Failed to connect to the new Chrome instance via CDP on port {debugging_port_to_connect}: {str(e)}')
+				raise RuntimeError(
+					'Failed to connect to the new Chrome instance with specified debug port. Ensure the port is not in use or try a different one.'
+				)
+		else:
+			# If no debugging port was specified for the new instance, we can't connect via CDP.
+			# Playwright doesn't directly support launching an executable and then attaching without a debug port.
+			# This scenario implies running Chrome normally, without CDP-based automation control after launch.
+			# This might not be what's intended for typical Playwright usage with a user-provided binary.
+			# For now, we'll raise an error as connecting is the primary way to control it.
+			# If the goal is just to *launch* Chrome without controlling it via Playwright CDP, this part would need rethinking.
+			logger.warning(
+				'Launched Chrome via browser_binary_path without a remote debugging port. Playwright cannot connect to control this instance via CDP. If you intend to control it, please specify a --remote-debugging-port in extra_browser_args.'
 			)
-			return browser
-		except Exception as e:
-			logger.error(f'❌  Failed to start a new Chrome instance: {str(e)}')
+			# Depending on requirements, you might return a dummy/unusable browser object or handle this differently.
+			# For now, let's assume control is desired if a binary path is given.
 			raise RuntimeError(
-				'To start chrome in Debug mode, you need to close all existing Chrome instances and try again otherwise we can not connect to the instance.'
+				'Launched Chrome without a debugging port, Playwright cannot connect. Specify --remote-debugging-port in extra_browser_args to enable control.'
 			)
 
 	async def _setup_builtin_browser(self, playwright: Playwright) -> PlaywrightBrowser:

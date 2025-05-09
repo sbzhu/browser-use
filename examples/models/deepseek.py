@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from langchain_deepseek import ChatDeepSeek
 from pydantic import SecretStr
 from browser_use import Agent, Browser, BrowserConfig
+from browser_use.browser import browser
 from browser_use.browser.context import BrowserContextConfig
 
 # dotenv
@@ -24,8 +25,10 @@ async def run_search(theme):
 			browser_binary_path='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',  # macOS path
 			# For Windows, typically: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
 			# For Linux, typically: '/usr/bin/google-chrome'
-
-			extra_browser_args=['--remote-debugging-port=9223'],
+			extra_browser_args=[
+				"--user-data-dir=~/Library/Application Support/Google/Chrome/Default",
+				"--remote-debugging-port=9222",
+        	],
 
             # 无头模式
             headless=False, 
@@ -35,27 +38,43 @@ async def run_search(theme):
             keep_alive=True,
 
 			# 指定下载路径
-			new_context_config=BrowserContextConfig(save_downloads_path=os.path.join(os.path.expanduser('~'), 'Downloads'))
+			new_context_config=BrowserContextConfig(save_downloads_path=os.path.join(os.path.expanduser('~'), 'Downloads')),
+
+			# 保存对话	
+			save_conversation_path="logs/conversation",  # Save chat logs
 		)
+	)
+	llm=ChatDeepSeek(
+		base_url='https://api.deepseek.com/v1',
+		model='deepseek-chat',
+		api_key=SecretStr(api_key),
+	)
+	llm_r=ChatDeepSeek(
+		base_url='https://api.deepseek.com/v1',
+		model='deepseek-reasoner',
+		api_key=SecretStr(api_key),
 	)
 	agent = Agent(
 		task=(
+            #f'打开aippt网站(https://www.aippt.cn/generate?type=ai), 并登录完成.'
             f'在aippt网站(https://www.aippt.cn/generate?type=ai), 生成一个PPT. 主题是"{theme}", ppt模版风格要贴合主题.'
-            '操作提示：要打开联网搜索;点"联网搜索"右边一个纸飞机状的按钮后就会开始生成大纲.'
-            'aippt网站生成完成ppt后，会有一个"下载"按钮,  鼠标悬浮在按钮上可以选择下载类型，选"PPT"进行下载'
+            '操作提示："联网搜索"右边一个纸飞机状的按钮后就会开始生成大纲.'
+            'aippt网站生成完成ppt后，会有一个"下载"按钮, 选pdf格式下载到本地'
 		),
-		llm=ChatDeepSeek(
-			base_url='https://api.deepseek.com/v1',
-			model='deepseek-chat',
-			api_key=SecretStr(api_key),
-		),
+		llm=llm,
+
+		# 计划器
+		# planner_llm=llm_r, 
+
 		browser=browser,
 
         # 视觉能力，deepseek不支持
 		use_vision=False, 
 	)
 
-	await agent.run()
+	history = await agent.run()
+
+	await browser.close()
 
 if __name__ == '__main__':
 	# 创建命令行参数解析器

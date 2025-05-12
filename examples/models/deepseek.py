@@ -4,6 +4,7 @@ import argparse
 
 from dotenv import load_dotenv
 from langchain_deepseek import ChatDeepSeek
+from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser import browser
@@ -40,17 +41,17 @@ async def run_search(theme):
 			# 指定下载路径
 			new_context_config=BrowserContextConfig(
 				save_downloads_path=os.path.join(os.path.expanduser('~'), 'Downloads'),
-				maximum_wait_page_load_time=2.0
+				maximum_wait_page_load_time=4.0
 			),
 
 			# 保存对话	
 			save_conversation_path="logs/conversation",  # Save chat logs
 		)
 	)
-	llm=ChatDeepSeek(
-		base_url='https://api.deepseek.com/v1',
-		model='deepseek-chat',
-		api_key=SecretStr(api_key),
+	llm=ChatOpenAI(
+		base_url=os.getenv('CUSTOM_LLM_BASE_URL', ''),
+		model=os.getenv('CUSTOM_LLM_MODEL_NAME', ''),
+		api_key=SecretStr(os.getenv('CUSTOM_LLM_API_KEY', '')),
 	)
 	llm_r=ChatDeepSeek(
 		base_url='https://api.deepseek.com/v1',

@@ -25,20 +25,22 @@ if not api_key:
 	raise ValueError('CUSTOM_LLM_API_KEY is not set')
 
 
-async def run_search():
+async def test_llm():
 	llm=ChatOpenAI(
 		base_url=os.getenv('CUSTOM_LLM_BASE_URL', ''),
 		model=os.getenv('CUSTOM_LLM_MODEL_NAME', ''),
 		api_key=SecretStr(api_key),
 	)
 
-	'''
+	#'''
 	messages = [
 		{"role": "system", "content": "You are a helpful assistant."},
 		{"role": "user", "content": "Hello!"},
 	]
 	response = llm.invoke(messages)
 	print(response)
+	#'''
+
 	'''
 	messages = [
 		{
@@ -75,8 +77,15 @@ async def run_search():
 	]
 	response = llm.invoke(messages)
 	print(response)
-
 	'''
+
+async def run_search():
+	llm=ChatOpenAI(
+		base_url=os.getenv('CUSTOM_LLM_BASE_URL', ''),
+		model=os.getenv('CUSTOM_LLM_MODEL_NAME', ''),
+		api_key=SecretStr(api_key),
+	)
+
 	agent = Agent(
 		task=(
 			'1. Go to https://www.reddit.com/r/LocalLLaMA '
@@ -89,8 +98,8 @@ async def run_search():
 	)
 
 	await agent.run()
-	'''
 
 
 if __name__ == '__main__':
 	asyncio.run(run_search())
+	#asyncio.run(test_llm())

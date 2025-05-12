@@ -8,6 +8,7 @@ from pydantic import SecretStr
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser import browser
 from browser_use.browser.context import BrowserContextConfig
+from langchain_openai import ChatOpenAI
 
 # dotenv
 load_dotenv()
@@ -47,10 +48,10 @@ async def run_search(tapd_id):
 			save_conversation_path="logs/conversation",  # Save chat logs
 		)
 	)
-	llm=ChatDeepSeek(
-		base_url='https://api.deepseek.com/v1',
-		model='deepseek-chat',
-		api_key=SecretStr(api_key),
+	llm=ChatOpenAI(
+		base_url=os.getenv('CUSTOM_LLM_BASE_URL', ''),
+		model=os.getenv('CUSTOM_LLM_MODEL_NAME', ''),
+		api_key=SecretStr(os.getenv('CUSTOM_LLM_API_KEY', '')),
 	)
 	llm_r=ChatDeepSeek(
 		base_url='https://api.deepseek.com/v1',
@@ -60,7 +61,8 @@ async def run_search(tapd_id):
 	agent = Agent(
 		task=(
             f'打开tapd(https://tapd.woa.com/tapd_fe/10121621/story/list?useScene=storyList&groupType=&conf_id=1010121621076668439)，搜索这个需求"{tapd_id}"，'
-			'查一下这个需求的状态和提交需求的时间'
+			'查一下这个需求的状态和提交需求的时间, 如果匹配到多个TAPD，就打开第一个并读取,'
+			'输出格式为：{"title":"需求标题", "status": "需求状态", "submit_time": "提交时间", "url": "TAPD链接"}'
 		),
 		llm=llm,
 
@@ -76,7 +78,7 @@ async def run_search(tapd_id):
 
 	history = await agent.run()
 
-	#print('history actions', history.model_actions())
+	print('history actions', history.model_actions())
 	history.save_as_playwright_script('history_playwright.py')
 
 	# await browser.close()

@@ -67,7 +67,7 @@ async def run_search(theme):
 		llm=llm,
 
 		# 计划器
-		planner_llm=llm_r, 
+		# planner_llm=llm_r, 
 		planner_interval=3, # Plan every 3 steps
 
 		browser=browser,

@@ -107,7 +107,7 @@ class Controller(Generic[Context]):
 			return ActionResult(extracted_content=msg, include_in_memory=True)
 
 		# wait for x seconds
-		@self.registry.action('Wait for x seconds default 3')
+		@self.registry.action('Wait for x seconds default 3, max 10 seconds')
 		async def wait(seconds: int = 3):
 			msg = f'🕒  Waiting for {seconds} seconds'
 			logger.info(msg)

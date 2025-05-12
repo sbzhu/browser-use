@@ -18,7 +18,7 @@ if not api_key:
 	raise ValueError('DEEPSEEK_API_KEY is not set')
 
 
-async def run_search(tapd_id):
+async def run_search(tapd):
 	browser = Browser(
 		config=BrowserConfig(
 	        # Configure the browser to connect to your Chrome instance
@@ -60,9 +60,8 @@ async def run_search(tapd_id):
 	)
 	agent = Agent(
 		task=(
-            f'打开tapd(https://tapd.woa.com/tapd_fe/10121621/story/list?useScene=storyList&groupType=&conf_id=1010121621076668439)，搜索这个需求"{tapd_id}"，'
-			'查一下这个需求的状态和提交需求的时间, 如果匹配到多个TAPD，就打开第一个并读取,'
-			'输出格式为：{"title":"需求标题", "status": "需求状态", "submit_time": "提交时间", "url": "TAPD链接"}'
+            f'打开tapd(https://tapd.woa.com/tapd_fe/10121621/story/list?useScene=storyList&groupType=&conf_id=1010121621076668439)，搜索这个需求"{tapd}"，'
+			'查一下这个需求的状态和提交需求的时间, 如果匹配到多个TAPD，就打开第一个并读取'
 		),
 		llm=llm,
 
@@ -86,10 +85,10 @@ async def run_search(tapd_id):
 if __name__ == '__main__':
 	# 创建命令行参数解析器
 	parser = argparse.ArgumentParser(description='生成PPT的脚本')
-	parser.add_argument('--tapd_id', type=str, default='119088168', help='TAPD需求ID')
+	parser.add_argument('--tapd', type=str, default='拦截放开新注册和不活跃企业', help='TAPD标题')
 	
 	# 解析命令行参数
 	args = parser.parse_args()
 	
 	# 运行脚本，传入主题参数
-	asyncio.run(run_search(args.tapd_id))
+	asyncio.run(run_search(args.tapd))

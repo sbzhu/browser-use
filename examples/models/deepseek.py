@@ -78,7 +78,7 @@ async def run_search(theme):
 
 	history = await agent.run()
 
-	print('history actions', history.model_actions())
+	#print('history actions', history.model_actions())
 	history.save_as_playwright_script('history_playwright.py')
 
 	# await browser.close()

@@ -245,7 +245,7 @@ class Browser:
 		chrome_launch_args = list(chrome_launch_args_set)
 
 		# Start a new Chrome instance
-		logger.info(f"🚀 Launching new browser instance with args: {' '.join(chrome_launch_args)}")
+		# logger.info(f"🚀 Launching new browser instance with args: {' '.join(chrome_launch_args)}")
 		chrome_sub_process = await asyncio.create_subprocess_exec(
 			self.config.browser_binary_path,
 			*chrome_launch_args,

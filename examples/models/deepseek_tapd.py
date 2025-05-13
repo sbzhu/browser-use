@@ -61,8 +61,9 @@ async def run_search(tapd):
 	)
 	agent = Agent(
 		task=(
-            f'打开tapd(https://tapd.woa.com/tapd_fe/10121621/story/list?useScene=storyList&groupType=&conf_id=1010121621076668439)，搜索这个需求"{tapd}"，'
-			'查一下这个需求的状态和提交需求的时间, 如果匹配到多个TAPD，就打开第一个并读取.'
+            f'打开tapd(https://tapd.woa.com/tapd_fe/10121621/story/list?useScene=storyList&groupType=&conf_id=1010121621076668439)，搜索这个需求"{tapd}"，\n'
+			'查一下这个需求的状态和提交需求的时间, 如果匹配到多个TAPD，就打开第一个并读取.\n'
+			'返回这个需求的状态和提交需求的时间, 例如: status is "已完成", submit_time is "2023-08-17 15:30:00".'
 		),
 		llm=llm,
 
@@ -78,11 +79,9 @@ async def run_search(tapd):
 
 	history = await agent.run()
 
-
-	print(history.action_results()[-1].extracted_content)
-	
 	# 从历史记录中获取最后一个模型输出
 	last_output = history.action_results()[-1].extracted_content
+	print('result', last_output)
 	
 	if not last_output:
 		return None
@@ -91,34 +90,37 @@ async def run_search(tapd):
 	status = None
 	submit_time = None
 	
-	# 将输出转换为小写，便于搜索
-	output_lower = last_output.lower()
+	# 提取状态信息
+	status_index = last_output.find('status is')
+	if status_index != -1:
+	    # 尝试查找双引号
+		start = last_output.find('"', status_index)
+		if start != -1:
+			end = last_output.find('"', start + 1)
+		else:
+			# 如果没有找到双引号，尝试查找单引号
+			start = last_output.find("'", status_index)
+			if start != -1:
+				end = last_output.find("'", start + 1)
 	
-	# 搜索状态相关的关键词
-	status_keywords = ['status', '状态']
-	for keyword in status_keywords:
-		if keyword in output_lower:
-			# 找到关键词后，提取其后的内容作为状态
-			start_pos = output_lower.find(keyword)
-			start_quote = last_output.find("'", start_pos)
-			if start_quote != -1:
-				end_quote = last_output.find("'", start_quote + 1)
-				if end_quote != -1:
-					status = last_output[start_quote + 1:end_quote]
-					break
+		if start != -1 and end != -1:
+			status = last_output[start + 1:end]
 	
-	# 搜索时间相关的关键词
-	time_keywords = ['submitted on', '提交时间']
-	for keyword in time_keywords:
-		if keyword in output_lower:
-			# 找到关键词后，提取其后的内容作为时间
-			start_pos = output_lower.find(keyword)
-			start_quote = last_output.find("'", start_pos)
-			if start_quote != -1:
-				end_quote = last_output.find("'", start_quote + 1)
-				if end_quote != -1:
-					submit_time = last_output[start_quote + 1:end_quote]
-					break
+	# 提取提交时间信息
+	time_index = last_output.find('submit_time is')
+	if time_index != -1:
+	    # 尝试查找双引号
+		start = last_output.find('"', time_index)
+		if start != -1:
+			end = last_output.find('"', start + 1)
+		else:
+			# 如果没有找到双引号，尝试查找单引号
+			start = last_output.find("'", time_index)
+			if start != -1:
+				end = last_output.find("'", start + 1)
+	
+		if start != -1 and end != -1:
+			submit_time = last_output[start + 1:end]
 	
 	if status or submit_time:
 		result = {}
@@ -126,7 +128,6 @@ async def run_search(tapd):
 			result['status'] = status
 		if submit_time:
 			result['submit_time'] = submit_time
-		print(result)
 		return result
 	
 	return None

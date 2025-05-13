@@ -78,6 +78,7 @@ async def run_search(tapd):
 	)
 
 	history = await agent.run()
+	history.save_to_file("history.json")
 
 	# 从历史记录中获取最后一个模型输出
 	last_output = history.action_results()[-1].extracted_content

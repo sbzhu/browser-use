@@ -77,6 +77,7 @@ class DomService:
 			return (
 				DOMElementNode(
 					tag_name='body',
+					text_content='',
 					xpath='',
 					attributes={},
 					children=[],
@@ -185,6 +186,7 @@ class DomService:
 
 		element_node = DOMElementNode(
 			tag_name=node_data['tagName'],
+			text_content=node_data['textContent'],
 			xpath=node_data['xpath'],
 			attributes=node_data.get('attributes', {}),
 			children=[],

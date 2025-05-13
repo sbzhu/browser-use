@@ -60,6 +60,7 @@ class DOMElementNode(DOMBaseNode):
 	"""
 
 	tag_name: str
+	text_content: str
 	xpath: str
 	attributes: dict[str, str]
 	children: list[DOMBaseNode]
@@ -82,6 +83,7 @@ class DOMElementNode(DOMBaseNode):
 	def __json__(self) -> dict:
 		return {
 			'tag_name': self.tag_name,
+			'text_content': self.text_content,
 			'xpath': self.xpath,
 			'attributes': self.attributes,
 			'is_visible': self.is_visible,

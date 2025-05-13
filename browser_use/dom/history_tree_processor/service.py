@@ -19,6 +19,7 @@ class HistoryTreeProcessor:
 		css_selector = BrowserContext._enhanced_css_selector_for_element(dom_element)
 		return DOMHistoryElement(
 			dom_element.tag_name,
+			dom_element.text_content,
 			dom_element.xpath,
 			dom_element.highlight_index,
 			parent_branch_path,

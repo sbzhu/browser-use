@@ -40,6 +40,7 @@ class ViewportInfo(BaseModel):
 @dataclass
 class DOMHistoryElement:
 	tag_name: str
+	text_content: str
 	xpath: str
 	highlight_index: int | None
 	entire_parent_branch_path: list[str]
@@ -57,6 +58,7 @@ class DOMHistoryElement:
 
 		return {
 			'tag_name': self.tag_name,
+			'text_content': self.text_content,
 			'xpath': self.xpath,
 			'highlight_index': self.highlight_index,
 			'entire_parent_branch_path': self.entire_parent_branch_path,

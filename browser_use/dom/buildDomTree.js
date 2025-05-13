@@ -1169,6 +1169,7 @@
     if (node === document.body) {
       const nodeData = {
         tagName: 'body',
+        textContent: '',
         attributes: {},
         xpath: '/body',
         children: [],
@@ -1251,6 +1252,7 @@
     // Process element node
     const nodeData = {
       tagName: node.tagName.toLowerCase(),
+      textContent: node.textContent.trim(),
       attributes: {},
       xpath: getXPathTree(node, true),
       children: [],

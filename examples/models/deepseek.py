@@ -63,7 +63,21 @@ async def run_search(theme):
             #f'打开aippt网站(https://www.aippt.cn/generate?type=ai), 输入主题”我试一下, 关闭浏览器“.'
             f'在AIPPT网站(https://www.aippt.cn/generate?type=ai), 生成一个PPT. 主题是"{theme}", ppt模版风格要贴合主题.'
             '操作提示：点击"联网搜索"按钮右边一个纸飞机状的按钮后就会开始生成大纲.'
-            'AIPPT网站生成完成ppt后，点击"下载"按钮下载ppt到本地'
+            #'AIPPT网站生成完成ppt后，点击"下载"按钮下载ppt到本地.'
+		),
+		message_context=(
+			'根据上次执行任务的经验，完整的操作流程大致如下：\n'
+			'go_to_url url=https://www.aippt.cn/generate?type=ai\n'
+			'input_text text_content=, text={主题}\n'
+			'click_element_by_index text_content=, description=点击后开始生成大纲\n'
+			'wait seconds=50, description=等待大纲生成\n'
+			'click_element_by_index text_content=挑选 PPT 模板\n'
+			'input_text text_content=, text={主题}, description=输入模板关键词搜索合适的模板\n'
+			'wait seconds=5\n'
+			'click_element_by_index text_content=生成 PPT1\n'
+			'wait seconds=30, description=等待PPT生成\n'
+			'click_element_by_index text_content=下 载\n'
+			'done'
 		),
 		llm=llm,
 
@@ -79,9 +93,11 @@ async def run_search(theme):
 
 	history = await agent.run()
 	history.save_to_file('history.json')
+	print('history.model_actions', history.model_actions())
+	#print('history.action_results', history.action_results())
 
-	#print('history actions', history.model_actions())
 	history.save_as_playwright_script('history_playwright.py')
+	history.save_as_action_list("action_list.json")
 
 	# await browser.close()
 

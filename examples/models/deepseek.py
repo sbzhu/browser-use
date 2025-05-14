@@ -78,8 +78,6 @@ async def run_search(theme):
 			'wait seconds=30, description=等待PPT生成\n'
 			'click_element_by_index text_content=下 载\n'
 			'done\n'
-			'\n'
-			'你可以根据历史经验一次输出尽可能多的action.'
 		),
 		llm=llm,
 

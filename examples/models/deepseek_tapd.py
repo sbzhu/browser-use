@@ -75,6 +75,9 @@ async def run_search(tapd):
 
         # 视觉能力，deepseek不支持
 		use_vision=False, 
+
+		# 用历史回放来加速
+		history_file='AgentHistory.json.tapd',
 	)
 
 	history = await agent.run()

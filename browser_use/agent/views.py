@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, create_model
 
 from browser_use.agent.actions_printer import ActionsPrinter
 from browser_use.agent.message_manager.views import MessageManagerState
+#from browser_use.agent.message_manager.service import MessageManager
 from browser_use.agent.playwright_script_generator import PlaywrightScriptGenerator
 from browser_use.browser.browser import BrowserConfig
 from browser_use.browser.context import BrowserContextConfig
@@ -24,6 +25,9 @@ from browser_use.dom.history_tree_processor.service import (
 	HistoryTreeProcessor,
 )
 from browser_use.dom.views import SelectorMap
+from langchain_core.messages import (
+	AIMessage,
+)
 
 ToolCallingMethod = Literal['function_calling', 'json_mode', 'raw', 'auto', 'tools']
 REQUIRED_LLM_API_ENV_VARS = {
@@ -405,6 +409,53 @@ class AgentHistoryList(BaseModel):
 	def model_outputs(self) -> list[AgentOutput]:
 		"""Get all model outputs from history"""
 		return [h.model_output for h in self.history if h.model_output]
+
+	# TODO
+	# 1. 当前执行到了哪一步, 匹配机制需要优化：以已经执行了的控件来判断
+	# 2. 预测的下一步，需要能否正确从当前网页找到相应控件
+	# 3. 如果不能正确预测， 转llm来执行
+	def get_next_action(self, current_state: AgentHistory) -> AgentOutput:
+		# 如果 current_state 是none，返回history的第一个
+		if current_state is None:
+			return self.history[0].model_output
+
+		# 查找最后一条 AI 消息，获取当前的 AgentBrain 状态
+		current_brain = current_state.model_output.current_state
+		print("abeldebug current_brain", current_brain)
+		
+		# 如果没有找到当前的 AgentBrain 状态，无法匹配
+		if current_brain is None:
+			raise ValueError("无法从消息历史中找到当前的 AgentBrain 状态")
+		
+		# 在历史记录中查找匹配的步骤
+		current_step_index = -1
+		for i, history_item in enumerate(self.history):
+			if history_item.model_output is None:
+				continue
+			
+			# 获取历史记录中的 AgentBrain
+			history_brain = history_item.model_output.current_state
+			
+			# 比较 memory 和 evaluation_previous_goal 来确定匹配
+			if (history_brain.memory.strip() == current_brain.memory.strip() and 
+				history_brain.evaluation_previous_goal.strip() == current_brain.evaluation_previous_goal.strip()):
+				current_step_index = i
+				break
+		
+		# 如果没有找到匹配的步骤，抛出异常
+		if current_step_index == -1:
+			raise ValueError("无法在历史记录中找到匹配的步骤")
+		
+		# 检查是否有下一步
+		if current_step_index >= len(self.history) - 1:
+			raise ValueError("已经是最后一步，没有下一步action")
+		
+		# 返回下一步的 AgentOutput
+		next_step = current_step_index + 1
+		if self.history[next_step].model_output is None:
+			raise ValueError(f"步骤 {next_step} 没有model_output")
+		
+		return self.history[next_step].model_output
 
 	# get all actions with params
 	def model_actions(self) -> list[dict]:

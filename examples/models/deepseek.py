@@ -89,6 +89,9 @@ async def run_search(theme):
 
         # 视觉能力，deepseek不支持
 		use_vision=False, 
+
+		# 用历史回放来加速
+		history_file='AgentHistory.json.aippt',
 	)
 
 	history = await agent.run()
@@ -98,7 +101,7 @@ async def run_search(theme):
 
 	history.save_as_playwright_script('history_playwright.py')
 	history.save_as_action_list("action_list.json")
-	agent.save_history()
+	#agent.save_history()
 
 	# await browser.close()
 

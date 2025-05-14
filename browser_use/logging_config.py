@@ -89,7 +89,7 @@ def setup_logging():
 		console.setLevel('RESULT')
 		console.setFormatter(BrowserUseFormatter('%(message)s'))
 	else:
-		console.setFormatter(BrowserUseFormatter('%(levelname)-8s [%(name)s] %(message)s'))
+		console.setFormatter(BrowserUseFormatter('%(asctime)s %(levelname)-8s [%(name)s] %(message)s'))
 
 	# Configure root logger only
 	root.addHandler(console)

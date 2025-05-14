@@ -92,12 +92,13 @@ async def run_search(theme):
 	)
 
 	history = await agent.run()
-	history.save_to_file('history.json')
+	#history.save_to_file('history.json')
 	#print('history.model_actions', history.model_actions())
 	#print('history.action_results', history.action_results())
 
 	history.save_as_playwright_script('history_playwright.py')
 	history.save_as_action_list("action_list.json")
+	agent.save_history()
 
 	# await browser.close()
 

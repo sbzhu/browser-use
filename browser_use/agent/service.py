@@ -3,6 +3,7 @@ import gc
 import inspect
 import json
 import logging
+from math import log
 import os
 import re
 import sys
@@ -511,15 +512,17 @@ class Agent(Generic[Context]):
 
 			try:
 				if self.history:
-					print('abeldebug step, use history')
 					if len(self.state.history.history) == 0:
 						model_output = self.history.get_next_action(None)
 					else:
 						model_output = self.history.get_next_action(self.state.history.history[-1]) # TODO 用回放来构造 model_output
-				else:
-					print('abeldebug step, use llm')
+
+				if model_output is None or not isinstance(model_output, AgentOutput):
+					logger.info('No history found, calling model')
 					model_output = await self.get_next_action(input_messages) ## this is the main line that calls the LLM
-				print('abeldebug step, model_output', model_output)
+				else:
+					logger.info('History found, using it')
+
 				if (
 					not model_output.action
 					or not isinstance(model_output.action, list)

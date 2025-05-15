@@ -414,14 +414,17 @@ class AgentHistoryList(BaseModel):
 	# 1. 当前执行到了哪一步, 匹配机制需要优化：以已经执行了的控件来判断
 	# 2. 预测的下一步，需要能否正确从当前网页找到相应控件
 	# 3. 如果不能正确预测， 转llm来执行
-	def get_next_action(self, current_state: AgentHistory) -> AgentOutput:
-		# 如果 current_state 是none，返回history的第一个
-		if current_state is None:
+	def get_next_action(self, exec_history: AgentHistory) -> AgentOutput:
+		# 如果 exec_history 是none，返回history的第一个
+		if exec_history is None:
 			return self.history[0].model_output
 
+		# 如果执行失败了，返回None，让模型来处理
+		if any(r.error for r in exec_history.result):
+			return None
+
 		# 查找最后一条 AI 消息，获取当前的 AgentBrain 状态
-		current_brain = current_state.model_output.current_state
-		print("abeldebug current_brain", current_brain)
+		current_brain = exec_history.model_output.current_state
 		
 		# 如果没有找到当前的 AgentBrain 状态，无法匹配
 		if current_brain is None:

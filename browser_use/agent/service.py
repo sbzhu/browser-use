@@ -239,7 +239,7 @@ class Agent(Generic[Context]):
 		)
 
 		# Verify we can connect to the LLM
-		self._verify_llm_connection()
+		# self._verify_llm_connection()
 
 		# Initialize available actions for system prompt (only non-filtered actions)
 		# These will be used for the system prompt to maintain caching

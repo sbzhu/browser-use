@@ -447,11 +447,11 @@ class AgentHistoryList(BaseModel):
 		
 		# 如果没有找到匹配的步骤，抛出异常
 		if current_step_index == -1:
-			raise ValueError("无法在历史记录中找到匹配的步骤")
+			return None
 		
 		# 检查是否有下一步
 		if current_step_index >= len(self.history) - 1:
-			raise ValueError("已经是最后一步，没有下一步action")
+			return None
 		
 		# 返回下一步的 AgentOutput
 		next_step = current_step_index + 1

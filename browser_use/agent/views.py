@@ -418,30 +418,42 @@ class AgentHistoryList(BaseModel):
 		# 如果 exec_history 是none，返回history的第一个
 		if exec_history is None:
 			return self.history[0].model_output
-
+	
 		# 如果执行失败了，返回None，让模型来处理
 		if any(r.error for r in exec_history.result):
 			return None
+	
+		# 获取当前步骤的 interacted_element
+		current_elements = exec_history.state.interacted_element
 
-		# 查找最后一条 AI 消息，获取当前的 AgentBrain 状态
-		current_brain = exec_history.model_output.current_state
-		
-		# 如果没有找到当前的 AgentBrain 状态，无法匹配
-		if current_brain is None:
-			raise ValueError("无法从消息历史中找到当前的 AgentBrain 状态")
+		def match_interacted_element(e1: list[DOMHistoryElement], e2: list[DOMHistoryElement]) -> bool:
+			# 如果长度不同，直接返回False
+			if len(e1) != len(e2):
+				return False
+			
+			# 逐个比较元素
+			for el1, el2 in zip(e1, e2):
+				# 如果有一个为None，另一个也必须为None
+				if el1 is None or el2 is None:
+					if el1 != el2:
+						return False
+					continue
+				
+				# 比较所有属性
+				if HistoryTreeProcessor._hash_dom_history_element(el1) != HistoryTreeProcessor._hash_dom_history_element(el2):
+					return False
+			
+			# 所有元素都匹配
+			return True
 		
 		# 在历史记录中查找匹配的步骤
 		current_step_index = -1
 		for i, history_item in enumerate(self.history):
-			if history_item.model_output is None:
-				continue
+			# 获取历史记录中的 interacted_element
+			history_elements = history_item.state.interacted_element
 			
-			# 获取历史记录中的 AgentBrain
-			history_brain = history_item.model_output.current_state
-			
-			# 比较 memory 和 evaluation_previous_goal 来确定匹配
-			if (history_brain.memory.strip() == current_brain.memory.strip() and 
-				history_brain.evaluation_previous_goal.strip() == current_brain.evaluation_previous_goal.strip()):
+			# 比较 interacted_element 来确定匹配
+			if match_interacted_element(current_elements, history_elements):
 				current_step_index = i
 				break
 		

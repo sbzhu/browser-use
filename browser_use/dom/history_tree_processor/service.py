@@ -57,6 +57,10 @@ class HistoryTreeProcessor:
 		return hashed_dom_history_element == hashed_dom_element
 
 	@staticmethod
+	def compare_history_element(e1: DOMHistoryElement, e2: DOMHistoryElement) -> bool:
+		return HistoryTreeProcessor._hash_dom_history_element(e1) == HistoryTreeProcessor._hash_dom_history_element(e2)
+
+	@staticmethod
 	def _hash_dom_history_element(dom_history_element: DOMHistoryElement) -> HashedDomElement:
 		branch_path_hash = HistoryTreeProcessor._parent_branch_path_hash(dom_history_element.entire_parent_branch_path)
 		attributes_hash = HistoryTreeProcessor._attributes_hash(dom_history_element.attributes)

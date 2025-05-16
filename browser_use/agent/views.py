@@ -10,6 +10,7 @@ from typing import Any, Literal
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from openai import RateLimitError
+from openai.resources.evals.runs import output_items
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, create_model
 
 from browser_use.agent.actions_printer import ActionsPrinter
@@ -174,6 +175,14 @@ class AgentOutput(BaseModel):
 		model_.__doc__ = 'AgentOutput model with custom actions'
 		return model_
 
+	def model_dump(self, **kwargs) -> dict[str, Any]:
+		return {
+			'current_state': self.current_state.model_dump(),
+			'action': [action.model_dump(exclude_none=True) for action in self.action]
+		}
+
+class AgentOutputList(BaseModel):
+	model_outputs: list[AgentOutput]
 
 class AgentHistory(BaseModel):
 	"""History item for agent actions"""
@@ -203,11 +212,7 @@ class AgentHistory(BaseModel):
 		# Handle action serialization
 		model_output_dump = None
 		if self.model_output:
-			action_dump = [action.model_dump(exclude_none=True) for action in self.model_output.action]
-			model_output_dump = {
-				'current_state': self.model_output.current_state.model_dump(),
-				'action': action_dump,  # This preserves the actual action data
-			}
+			model_output_dump = self.model_output.model_dump()
 
 		return {
 			'model_output': model_output_dump,

@@ -93,6 +93,7 @@ async def run_search(theme):
 
 		# 用历史回放来加速
 		history_file='AgentHistory.json.aippt',
+		history_task='长生秘诀',
 	)
 
 	history = await agent.run()
@@ -109,7 +110,7 @@ async def run_search(theme):
 if __name__ == '__main__':
 	# 创建命令行参数解析器
 	parser = argparse.ArgumentParser(description='生成PPT的脚本')
-	parser.add_argument('--theme', type=str, default='长生秘诀', help='PPT的主题')
+	parser.add_argument('--theme', type=str, default='人工智能概述', help='PPT的主题')
 	
 	# 解析命令行参数
 	args = parser.parse_args()

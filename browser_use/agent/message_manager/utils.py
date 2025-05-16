@@ -51,6 +51,33 @@ def extract_json_from_model_output(content: str) -> dict:
 		logger.warning(f'Failed to parse model output: {content} {str(e)}')
 		raise ValueError('Could not parse response.')
 
+def extract_json_list_from_model_output(content: str) -> list[dict]:
+    """Extract JSON list from model output, handling both plain JSON and code-block-wrapped JSON."""
+    try:
+        # If content is wrapped in code blocks, extract just the JSON part
+        if '```' in content:
+            # Find the JSON content between code blocks
+            content = content.split('```')[1]
+            # Remove language identifier if present (e.g., 'json\n')
+            if '\n' in content:
+                content = content.split('\n', 1)[1]
+        # Parse the cleaned content
+        result = json.loads(content)
+
+        # If result is a dictionary, wrap it in a list
+        if isinstance(result, dict):
+            result = [result]
+        # Ensure result is a list of dictionaries
+        if not isinstance(result, list):
+            raise ValueError(f'Expected JSON list or dictionary in response, got {type(result)}')
+        if not all(isinstance(item, dict) for item in result):
+            raise ValueError('All items in the list must be dictionaries')
+            
+        return result
+    except json.JSONDecodeError as e:
+        logger.warning(f'Failed to parse model output: {content} {str(e)}')
+        raise ValueError('Could not parse response.')
+
 
 def convert_input_messages(input_messages: list[BaseMessage], model_name: str | None) -> list[BaseMessage]:
 	"""Convert input messages to a format that is compatible with the planner model"""

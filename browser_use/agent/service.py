@@ -30,6 +30,7 @@ from browser_use.agent.message_manager.service import MessageManager, MessageMan
 from browser_use.agent.message_manager.utils import (
 	convert_input_messages,
 	extract_json_from_model_output,
+	extract_json_list_from_model_output,
 	is_model_without_tool_support,
 	save_conversation,
 )
@@ -41,6 +42,7 @@ from browser_use.agent.views import (
 	AgentHistory,
 	AgentHistoryList,
 	AgentOutput,
+	AgentOutputList,
 	AgentSettings,
 	AgentState,
 	AgentStepInfo,
@@ -158,6 +160,7 @@ class Agent(Generic[Context]):
 		memory_config: MemoryConfig | None = None,
 		source: str | None = None,
 		history_file: str | None = None,
+		history_task: str | None = None,
 	):
 		if page_extraction_llm is None:
 			page_extraction_llm = llm
@@ -327,9 +330,9 @@ class Agent(Generic[Context]):
 		if self.settings.save_conversation_path:
 			logger.info(f'Saving conversation to {self.settings.save_conversation_path}')
 
+		self.history_file = history_file
+		self.history_task = history_task
 		self.history = None
-		if history_file:
-			self.history = AgentHistoryList.load_from_file(history_file, self.AgentOutput)
 
 	def _set_message_context(self) -> str | None:
 		if self.tool_calling_method == 'raw':
@@ -878,6 +881,12 @@ class Agent(Generic[Context]):
 			exit_on_second_int=True,
 		)
 		signal_handler.register()
+
+		# Load history if provided
+		if self.history_file and self.history_task:
+			self.history = AgentHistoryList.load_from_file(self.history_file, self.AgentOutput)
+			self.history = await self._fix_history_to_fit_new_task(self.history, self.history_task)
+
 
 		try:
 			self._log_agent_run()
@@ -1454,5 +1463,64 @@ class Agent(Generic[Context]):
 		self.DoneActionModel = self.controller.registry.create_action_model(include_actions=['done'], page=page)
 		self.DoneAgentOutput = AgentOutput.type_with_custom_actions(self.DoneActionModel)
 
-	def _fix_history_to_fit_new_task(self, old_task: str) -> bool:
-		pass
+	async def _fix_history_to_fit_new_task(self, history: AgentHistoryList, history_task: str) -> AgentHistoryList:
+		"""修改执行历史以匹配新的任务
+		
+		Args:
+			history: 旧任务执行历史
+			history_task: 旧任务描述
+		
+		Returns:
+			bool: 是否成功修改历史
+		"""
+		if not history or not history_task:
+			logger.warning("没有历史记录可以修改")
+			return False
+		
+		try:
+			# 准备提示信息
+			prompt = f"""你是一个AI助手，负责修改浏览器自动化任务的执行历史。
+			
+			旧任务: {history_task}
+			新任务: {self.task}
+			
+			请分析这两个任务之间的关系，并修改执行历史，使其与新任务保持一致。
+			保留所有实际执行的操作和交互元素，但更新思考过程、目标和操作描述。
+			直接输出修改后的json格式的执行历史, 不要输出思考过程。
+			"""
+			
+			# 获取历史记录的序列化表示
+			history_data = []
+			for item in history.model_outputs():
+				history_data.append(item.model_dump())
+			
+			# 调用LLM修改历史记录
+			input_messages = [
+				SystemMessage(content=prompt),
+				HumanMessage(content=f"历史记录: {json.dumps(history_data, ensure_ascii=False)}")
+			]
+			
+			try:
+				output = self.llm.invoke(input_messages)
+			except Exception as e:
+				logger.error(f'Failed to invoke model: {str(e)}')
+				raise LLMException(401, 'LLM API call failed') from e
+			output.content = self._remove_think_tags(str(output.content))
+			print(output.content)
+			try:
+				parsed_json_list = extract_json_list_from_model_output(output.content)
+			except (ValueError, ValidationError) as e:
+				logger.warning(f'Failed to parse model output: {output} {str(e)}')
+				raise ValueError('Could not parse response.')
+
+			# 更新历史记录
+			for i, parsed_json in enumerate(parsed_json_list):
+				new_output = AgentOutput(**parsed_json)
+				print(new_output)
+				history.history[i].model_output = new_output
+
+			return history 
+			
+		except Exception as e:
+			logger.error(f"修改历史记录时出错: {e}")
+			return history

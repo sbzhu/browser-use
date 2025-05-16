@@ -1506,7 +1506,6 @@ class Agent(Generic[Context]):
 				logger.error(f'Failed to invoke model: {str(e)}')
 				raise LLMException(401, 'LLM API call failed') from e
 			output.content = self._remove_think_tags(str(output.content))
-			print(output.content)
 			try:
 				parsed_json_list = extract_json_list_from_model_output(output.content)
 			except (ValueError, ValidationError) as e:
@@ -1516,7 +1515,6 @@ class Agent(Generic[Context]):
 			# 更新历史记录
 			for i, parsed_json in enumerate(parsed_json_list):
 				new_output = AgentOutput(**parsed_json)
-				print(new_output)
 				history.history[i].model_output = new_output
 
 			return history 

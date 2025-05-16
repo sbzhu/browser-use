@@ -71,12 +71,12 @@ async def run_search(theme):
 			'go_to_url url=https://www.aippt.cn/generate?type=ai\n'
 			'input_text text_content=, text={主题}\n'
 			'click_element_by_index text_content=, description=点击后开始生成大纲\n'
-			'wait seconds=40, description=等待大纲生成完成\n'
+			'wait seconds=120, description=等待大纲生成完成\n'
 			'click_element_by_index text_content=挑选 PPT 模板\n'
 			'input_text text_content=, text={主题}, description=输入模板关键词\n'
 			'click_element_by_index text_content=, description=搜索合适的模板\n'
 			'click_element_by_index text_content=生成 PPT1\n'
-			'wait seconds=30, description=等待PPT生成\n'
+			'wait seconds=40, description=等待PPT生成\n'
 			'click_element_by_index text_content=下 载\n'
 			'done\n'
 		),
@@ -94,7 +94,10 @@ async def run_search(theme):
 
 		# 用历史回放来加速
 		history_file='AgentHistory.json.aippt',
-		history_task='长生秘诀',
+		history_task=(
+            '在AIPPT网站(https://www.aippt.cn/generate?type=ai), 生成一个PPT. 主题是"人工智能概述", ppt模版风格要贴合主题.'
+            '操作提示：点击"联网搜索"按钮右边一个纸飞机状的按钮后就会开始生成大纲.'
+		)
 	)
 
 	history = await agent.run()
@@ -104,14 +107,14 @@ async def run_search(theme):
 
 	history.save_as_playwright_script('history_playwright.py')
 	history.save_as_action_list("action_list.json")
-	#agent.save_history()
+	agent.save_history()
 
 	# await browser.close()
 
 if __name__ == '__main__':
 	# 创建命令行参数解析器
 	parser = argparse.ArgumentParser(description='生成PPT的脚本')
-	parser.add_argument('--theme', type=str, default='人工智能概述', help='PPT的主题')
+	parser.add_argument('--theme', type=str, default='browser-use介绍', help='PPT的主题')
 	
 	# 解析命令行参数
 	args = parser.parse_args()

@@ -1525,7 +1525,7 @@ class Agent(Generic[Context]):
 			for parsed_json, item in zip(parsed_json_list, history.history):
 				item.model_output = self.AgentOutput(**parsed_json)
 
-			logger.info("历史记录修改成功", history.model_outputs())
+			logger.info("历史记录修改成功")
 			return history 
 			
 		except Exception as e:

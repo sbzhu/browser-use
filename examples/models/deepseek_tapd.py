@@ -66,6 +66,7 @@ async def run_search(tapd):
 			'返回这个需求的状态和提交需求的时间, 例如: status is "已完成", submit_time is "2023-08-17 15:30:00".'
 		),
 		llm=llm,
+		#initial_actions=[{'open_tab': {'url': 'https://tapd.woa.com/tapd_fe/10121621/story/list?useScene=storyList&groupType=&conf_id=1010121621076668439'}}],
 
 		# 计划器
 		# planner_llm=llm_r, 

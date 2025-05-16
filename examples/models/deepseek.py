@@ -80,6 +80,7 @@ async def run_search(theme):
 			'done\n'
 		),
 		llm=llm,
+		#initial_actions=[{'open_tab': {'url': 'https://www.aippt.cn/generate?type=ai'}}],
 
 		# 计划器
 		# planner_llm=llm_r, 

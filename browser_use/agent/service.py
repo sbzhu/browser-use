@@ -1453,3 +1453,6 @@ class Agent(Generic[Context]):
 		# Update done action model too
 		self.DoneActionModel = self.controller.registry.create_action_model(include_actions=['done'], page=page)
 		self.DoneAgentOutput = AgentOutput.type_with_custom_actions(self.DoneActionModel)
+
+	def _fix_history_to_fit_new_task(self, old_task: str) -> bool:
+		pass

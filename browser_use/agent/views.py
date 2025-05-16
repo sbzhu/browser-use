@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.resources
 import json
 import traceback
 import uuid
@@ -330,7 +331,7 @@ class AgentHistoryList(BaseModel):
 	@classmethod
 	def load_from_file(cls, filepath: str | Path, output_model: type[AgentOutput]) -> AgentHistoryList:
 		"""Load history from JSON file"""
-		with open(filepath, encoding='utf-8') as f:
+		with importlib.resources.files('browser_use.history').joinpath(filepath).open('r') as f:
 			data = json.load(f)
 		# loop through history and validate output_model actions to enrich with custom actions
 		for h in data['history']:

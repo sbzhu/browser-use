@@ -79,6 +79,11 @@ async def run_search(tapd):
 
 		# 用历史回放来加速
 		history_file='AgentHistory.json.tapd',
+		history_task=(
+            f'打开tapd(https://tapd.woa.com/tapd_fe/10121621/story/list?useScene=storyList&groupType=&conf_id=1010121621076668439)，搜索这个需求"临时放过不规范下单拦截"，\n'
+			'查一下这个需求的状态和提交需求的时间, 如果匹配到多个TAPD，就打开第一个并读取.\n'
+			'返回这个需求的状态和提交需求的时间, 例如: status is "已完成", submit_time is "2023-08-17 15:30:00".'
+		),
 	)
 
 	history = await agent.run()
@@ -144,7 +149,7 @@ async def run_search(tapd):
 if __name__ == '__main__':
 	# 创建命令行参数解析器
 	parser = argparse.ArgumentParser(description='生成PPT的脚本')
-	parser.add_argument('--tapd', type=str, default='临时放过不规范下单拦截', help='TAPD标题')
+	parser.add_argument('--tapd', type=str, default='上传管理企业知识集', help='TAPD标题')
 	
 	# 解析命令行参数
 	args = parser.parse_args()

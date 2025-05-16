@@ -1,4 +1,5 @@
 from __future__ import annotations
+import traceback
 
 import json
 import logging
@@ -74,8 +75,9 @@ def extract_json_list_from_model_output(content: str) -> list[dict]:
             raise ValueError('All items in the list must be dictionaries')
             
         return result
-    except json.JSONDecodeError as e:
-        logger.warning(f'Failed to parse model output: {content} {str(e)}')
+    except json.JSONDecodeError as e: 
+        traceback.print_exc() # 打印完整堆栈信息
+        logger.warning(f'abeldebug Failed to parse model output: {content} {str(e)}')
         raise ValueError('Could not parse response.')
 
 

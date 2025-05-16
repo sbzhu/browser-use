@@ -1,4 +1,6 @@
 import asyncio
+from pyexpat import model
+import traceback
 import gc
 import inspect
 import json
@@ -42,6 +44,7 @@ from browser_use.agent.views import (
 	AgentHistory,
 	AgentHistoryList,
 	AgentOutput,
+	AgentBrain,
 	AgentOutputList,
 	AgentSettings,
 	AgentState,
@@ -519,10 +522,11 @@ class Agent(Generic[Context]):
 					if len(self.state.history.history) == 0:
 						predict_history = self.history.get_next_action(None)
 					else:
-						predict_history = self.history.get_next_action(self.state.history.history[-1]) # TODO 用回放来构造 model_output
+						predict_history = self.history.get_next_action(self.state.history.history[-1]) # 用回放来构造 model_output
 
 					if isinstance(predict_history, AgentHistory):
 						logger.info('History found, using it')
+						#print('abeldebug predict_history', predict_history.model_output.model_dump_json())
 
 						# 临时id可能已经对不上，需要更新
 						for i, action in enumerate(predict_history.model_output.action):
@@ -621,6 +625,7 @@ class Agent(Generic[Context]):
 			self.state.last_result = [ActionResult(error='The agent was paused with Ctrl+C', include_in_memory=False)]
 			raise InterruptedError('Step cancelled by user')
 		except Exception as e:
+			#traceback.print_exc()  # 打印完整堆栈信息
 			result = await self._handle_step_error(e)
 			self.state.last_result = result
 
@@ -1477,6 +1482,8 @@ class Agent(Generic[Context]):
 			logger.warning("没有历史记录可以修改")
 			return False
 		
+		logger.info("开始修改历史记录以适用于新的任务")
+		
 		try:
 			# 准备提示信息
 			prompt = f"""你是一个AI助手，负责修改浏览器自动化任务的执行历史。
@@ -1492,7 +1499,9 @@ class Agent(Generic[Context]):
 			# 获取历史记录的序列化表示
 			history_data = []
 			for item in history.model_outputs():
-				history_data.append(item.model_dump())
+				#print("修改前的历史记录", item)
+				history_data.append(item.model_dump(exclude_none=True)) 
+			#print('history_data:', history_data)
 			
 			# 调用LLM修改历史记录
 			input_messages = [
@@ -1513,12 +1522,13 @@ class Agent(Generic[Context]):
 				raise ValueError('Could not parse response.')
 
 			# 更新历史记录
-			for i, parsed_json in enumerate(parsed_json_list):
-				new_output = AgentOutput(**parsed_json)
-				history.history[i].model_output = new_output
+			for parsed_json, item in zip(parsed_json_list, history.history):
+				item.model_output = self.AgentOutput(**parsed_json)
 
+			logger.info("历史记录修改成功", history.model_outputs())
 			return history 
 			
 		except Exception as e:
 			logger.error(f"修改历史记录时出错: {e}")
 			return history
+		

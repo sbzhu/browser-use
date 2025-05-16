@@ -177,8 +177,8 @@ class AgentOutput(BaseModel):
 
 	def model_dump(self, **kwargs) -> dict[str, Any]:
 		return {
-			'current_state': self.current_state.model_dump(),
-			'action': [action.model_dump(exclude_none=True) for action in self.action]
+			'current_state': self.current_state.model_dump(**kwargs),
+			'action': [action.model_dump(**kwargs) for action in self.action]
 		}
 
 class AgentOutputList(BaseModel):

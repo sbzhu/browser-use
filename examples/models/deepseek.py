@@ -9,6 +9,7 @@ from pydantic import SecretStr
 from browser_use import Agent, Browser, BrowserConfig
 from browser_use.browser import browser
 from browser_use.browser.context import BrowserContextConfig
+import traceback
 
 # dotenv
 load_dotenv()
@@ -116,4 +117,7 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 	
 	# 运行脚本，传入主题参数
-	asyncio.run(run_search(args.theme))
+	try:
+		asyncio.run(run_search(args.theme))
+	except Exception:
+		traceback.print_exc()  # 打印完整堆栈信息

@@ -512,16 +512,31 @@ class Agent(Generic[Context]):
 
 			try:
 				if self.history:
+					predict_history = None
 					if len(self.state.history.history) == 0:
-						model_output = self.history.get_next_action(None)
+						predict_history = self.history.get_next_action(None)
 					else:
-						model_output = self.history.get_next_action(self.state.history.history[-1]) # TODO 用回放来构造 model_output
+						predict_history = self.history.get_next_action(self.state.history.history[-1]) # TODO 用回放来构造 model_output
 
-				if model_output is None or not isinstance(model_output, AgentOutput):
+					if isinstance(predict_history, AgentHistory):
+						logger.info('History found, using it')
+
+						# 临时id可能已经对不上，需要更新
+						for i, action in enumerate(predict_history.model_output.action):
+							updated_action = await self._update_action_indices(
+								predict_history.state.interacted_element[i],
+								action,
+								state,
+							)
+							if updated_action is not None:
+								predict_history.model_output.action[i] = updated_action
+
+						model_output = predict_history.model_output
+
+				if model_output is None:
 					logger.info('No history found, calling model')
 					model_output = await self.get_next_action(input_messages) ## this is the main line that calls the LLM
-				else:
-					logger.info('History found, using it')
+
 
 				if (
 					not model_output.action

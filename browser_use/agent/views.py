@@ -414,10 +414,10 @@ class AgentHistoryList(BaseModel):
 	# 1. 当前执行到了哪一步, 匹配机制需要优化：以已经执行了的控件来判断
 	# 2. 预测的下一步，需要能否正确从当前网页找到相应控件
 	# 3. 如果不能正确预测， 转llm来执行
-	def get_next_action(self, exec_history: AgentHistory) -> AgentOutput:
+	def get_next_action(self, exec_history: AgentHistory) -> AgentHistory:
 		# 如果 exec_history 是none，返回history的第一个
 		if exec_history is None:
-			return self.history[0].model_output
+			return self.history[0]
 	
 		# 如果执行失败了，返回None，让模型来处理
 		if any(r.error for r in exec_history.result):
@@ -470,7 +470,7 @@ class AgentHistoryList(BaseModel):
 		if self.history[next_step].model_output is None:
 			raise ValueError(f"步骤 {next_step} 没有model_output")
 		
-		return self.history[next_step].model_output
+		return self.history[next_step]
 
 	# get all actions with params
 	def model_actions(self) -> list[dict]:
